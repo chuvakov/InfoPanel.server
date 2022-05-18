@@ -1,0 +1,67 @@
+using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json.Serialization;
+using InfoPanel.Dto;
+using InfoPanel.Dto.Weather;
+using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
+
+namespace InfoPanel.Controllers;
+
+[ApiController] //говорит что этот класс является WebApi контроллером, одним из контроллеров нашего приложения
+[Route("api/[controller]")] //маршрут нашего контроллера (конкретизировали добавлением "api/")
+public class WheatherController : ControllerBase  //наш класс стал контроллером только из за наследование от базового контролера
+{
+    //private readonly HttpClient _httpClient;
+    
+    //Поле класса типа Словарь(Коллекция) в которое согласно шаблону коллеуции("ххх", "ххх") или ключ значение,
+    //мы передали список вариантов погоды для того что бы сопоставлять с получеными данными из API на английском и 
+    //выводить русский вариант
+    private readonly Dictionary<string, string> _wheatherTranslates = new Dictionary<string, string>()
+    {
+        {"Thunderstorm", "Гроза"},
+        {"Drizzle", "Моросит"},
+        {"Rain", "Дождь"},
+        {"Snow", "Снег"},
+        {"Mist", "Туман"},
+        {"Smoke", "Дым"},
+        {"Haze", "Туман"},
+        {"Dust", "Пыль"},
+        {"Fog", "Туманость"},
+        {"Clear", "Ясно"},
+        {"Clouds", "Облачно"}
+    };
+    
+    //Атрибуд метода для HTTP клиента с указанием в конструкторе наименование того имени по еоторому обращаться к нему клиенту
+    [HttpPost("GetLocationsInput")]
+    //метод возвращает колекцию объектов "LocationDto", которая является нашей DTO(представлением), 
+    //и содержит только необходимую для нас информацию от API с адресами
+    //На вход метод принимает DTO(представление) состоящую из
+    //строки запроса(строка на основе введенного адреса на сайте) и количество выводимымых ответов
+    public async Task<IEnumerable<LocationDto>> GetLocations(GetLocationsInput input)
+    {
+        //using мы используем для того что бы открыть соединение(создать объект) к Api с адресами и после того
+        //как код в этом блоке будет исполнен то соединение прервется(объект юзинга уничтожется)
+        //HttpClient - под капотом наследуется от IDisposable, что бы использовать using
+        //HttpClient - используется для выполнения HTTP-запросов и получение ответов через Uri
+        using (var client = new HttpClient())
+        {
+            //в созданную нами переменную HTTP клиента, а точнее в соответствующее поле этой переменной мы устанавливаем Uri
+            client.BaseAddress = new Uri("https://suggestions.dadata.ru/");
+            
+            client.DefaultRequestHeaders.Authorization =
+                new AuthenticationHeaderValue("Token", "722f97d320f6b6271757ee22f84394b046f739b5");
+            
+            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+            var requestContent = new StringContent(JsonConvert.SerializeObject(input), Encoding.UTF8, "application/json");
+
+            var response = await client.PostAsync(@"suggestions/api/4_1/rs/suggest/address", requestContent);
+
+            var responseContent = await response.Content.ReadAsStringAsync();
+
+            return null;
+        }
+    }
+}
+
