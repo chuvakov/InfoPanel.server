@@ -12,7 +12,7 @@ namespace InfoPanel.Controllers;
 
 [ApiController] 
 [Route("api/[controller]")] 
-public class WheatherController : ControllerBase
+public class WeatherController : ControllerBase
 {
     //private readonly HttpClient _httpClient;
     
@@ -31,8 +31,8 @@ public class WheatherController : ControllerBase
         {"Clouds", "Облачно"}
     };
     
-    [HttpPost("GetLocationsInput")]
-    public async Task<IEnumerable<LocationDto>> GetLocations(GetLocationsInput input)
+    [HttpGet("GetLocations")]
+    public async Task<IEnumerable<LocationDto>> GetLocations([FromQuery]GetLocationsInput input)
     {
         var result = new List<LocationDto>();
         using (var client = new HttpClient())
@@ -74,6 +74,31 @@ public class WheatherController : ControllerBase
             }
 
             return result;
+        }
+    }
+    
+    [HttpGet]
+    public async Task<WeatherDto> Get(double lat, double lon)
+    {
+        using (var client = new HttpClient())
+        {
+            client.BaseAddress = new Uri("https://api.openweathermap.org");
+            string appid = "2f314e0a2465820a76202a9ed015f4de";
+
+            var response = await client.GetAsync(@$"data/2.5/weather?appid={appid}&lat={lat}&lon={lon}&units=metric");
+
+            var responseContent = await response.Content.ReadAsStringAsync();
+            var jObject = JObject.Parse(responseContent);
+            var unixTime = long.Parse(jObject["dt"].ToString());
+            return new WeatherDto
+            {
+                Name = _wheatherTranslates[jObject["weather"][0]["main"].ToString()],
+                Temp = double.Parse(jObject["main"]["temp"].ToString()),
+                WindSpeed = double.Parse(jObject["wind"]["speed"].ToString()),
+                Time = TimeZoneInfo.ConvertTime(DateTimeOffset.FromUnixTimeSeconds(unixTime),TimeZoneInfo.Local).ToString("HH:mm"),
+                Humidity = int.Parse(jObject["main"]["humidity"].ToString()),
+                Icon = jObject["weather"][0]["icon"].ToString()
+            };
         }
     }
 }
