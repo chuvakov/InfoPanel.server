@@ -8,6 +8,10 @@ namespace InfoPanel.Controllers;
 [Route("api/[controller]")]
 public class CurrencyController : ControllerBase
 {
+    /// <summary>
+    /// Получение курсов валют за текущий день
+    /// </summary>
+    /// <returns></returns>
     [HttpGet]
     public async Task<DailyCourseCurrenciesDto> GetDailyCourses()
     {
@@ -27,6 +31,11 @@ public class CurrencyController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Парс курса валют для ответа
+    /// </summary>
+    /// <param name="currency"></param>
+    /// <returns></returns>
     private DailyCurrencyDto GetDailyCurrency(JToken currency)
     {
         var value = Math.Round(double.Parse(currency["Value"].ToString()), 2);
@@ -38,5 +47,49 @@ public class CurrencyController : ControllerBase
             Value = value,
             Difference = difference
         };
+    }
+
+    /// <summary>
+    /// Конвертор валют
+    /// </summary>
+    /// <param name="from">из</param>
+    /// <param name="to">во что</param>
+    /// <param name="sum">сколько</param>
+    /// <returns></returns>
+    [HttpGet("[action]")]
+    public async Task<decimal> Convert(string from, string to, decimal sum)
+    {
+        using (var httpClient = new HttpClient())
+        {
+            httpClient.BaseAddress = new Uri("https://free.currconv.com/");
+            var response = await httpClient.GetAsync($"/api/v7/convert?q={from}_{to}&compact=ultra&apiKey=ed8fce9240ebd9cad9db");
+            
+            var responseContent = await response.Content.ReadAsStringAsync();
+            var jObject = JObject.Parse(responseContent);
+            
+            var value = jObject[$"{from}_{to}"];
+            var result = decimal.Parse(value.ToString()) * sum;
+            
+            return Math.Round(result, 2);
+        }
+    }
+    
+    /// <summary>
+    /// Получение списка валют 
+    /// </summary>
+    /// <returns></returns>
+    [HttpGet("[action]")]
+    public async Task<IEnumerable<string>> GetAll()
+    {
+        using (var httpClient = new HttpClient())
+        {
+            httpClient.BaseAddress = new Uri("https://free.currconv.com/");
+            var response = await httpClient.GetAsync("/api/v7/currencies?apiKey=ed8fce9240ebd9cad9db");
+            var responseContent = await response.Content.ReadAsStringAsync();
+
+            var jObject = JObject.Parse(responseContent);
+            var currencies = jObject["results"].ToObject<Dictionary<string, JToken>>().Keys;
+            return currencies;
+        }
     }
 }

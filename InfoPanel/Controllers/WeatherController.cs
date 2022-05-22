@@ -14,8 +14,6 @@ namespace InfoPanel.Controllers;
 [Route("api/[controller]")] 
 public class WeatherController : ControllerBase
 {
-    //private readonly HttpClient _httpClient;
-    
     private readonly Dictionary<string, string> _wheatherTranslates = new Dictionary<string, string>()
     {
         {"Thunderstorm", "Гроза"},
@@ -31,7 +29,12 @@ public class WeatherController : ControllerBase
         {"Clouds", "Облачно"}
     };
     
-    [HttpGet("GetLocations")]
+    /// <summary>
+    /// Получение адреса
+    /// </summary>
+    /// <param name="input">Строка запроса адреса</param>
+    /// <returns></returns>
+    [HttpGet("[action]")]
     public async Task<IEnumerable<LocationDto>> GetLocations([FromQuery]GetLocationsInput input)
     {
         var result = new List<LocationDto>();
@@ -39,7 +42,7 @@ public class WeatherController : ControllerBase
         {
             client.BaseAddress = new Uri("https://suggestions.dadata.ru/");
 
-            client.DefaultRequestHeaders.Authorization =
+            client.DefaultRequestHeaders.Authorization = 
                 new AuthenticationHeaderValue("Token", "722f97d320f6b6271757ee22f84394b046f739b5");
             
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
@@ -77,6 +80,12 @@ public class WeatherController : ControllerBase
         }
     }
     
+    /// <summary>
+    /// Получение погоды по координатам
+    /// </summary>
+    /// <param name="lat">широта</param>
+    /// <param name="lon">долгота</param>
+    /// <returns></returns>
     [HttpGet]
     public async Task<WeatherDto> Get(double lat, double lon)
     {
